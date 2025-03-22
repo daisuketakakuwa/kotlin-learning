@@ -1,0 +1,81 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+buildscript {
+	ext {
+		kotlinVersion = '1.9.23'
+	}
+}
+
+// 新しいプラグイン記法/推奨： pluginのバージョンを明示的に指定できる
+plugins {
+	// Kotlin/Javaをコンパイルするためのプラグイン(JVMターゲットversion指定!)
+	id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
+	// Kotlin特有のデータクラスや拡張関数を Springのコンポーネントとして識別させる。
+	// KotlinとSpring Bootの統合するときに よしなに依存性解決
+	id 'org.jetbrains.kotlin.plugin.spring' version "${kotlinVersion}"
+	// mybatis用に空コンストラクタをData classにて自動生成する
+	id "org.jetbrains.kotlin.plugin.noarg" version "${kotlinVersion}"
+
+	// SpringBoot関連ライブラリのバージョン指定不要となる。
+	// bootRun, bootJar, bootWarタスクが追加される。
+	id 'org.springframework.boot' version '3.2.4'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+// 古いプラグイン記法/非推奨： pluginのバージョンを指定できない
+
+
+// mybatis用に空コンストラクタをData classにて自動生成する
+noArg {
+	annotation("jp.ats.kotlinlearning.annotation.NoArgsConstructor")
+}
+
+group = 'jp.ats'
+version = '0.0.1-SNAPSHOT'
+
+// Java/Kotlinコンパイル設定
+java {
+	sourceCompatibility = '17'
+}
+tasks.withType(KotlinCompile) {
+	kotlinOptions {
+		freeCompilerArgs += '-Xjsr305=strict'
+		jvmTarget = '17'
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// kotlin
+	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	// spring related
+	// -- バージョン指定不要 by org.jetbrains.kotlin.plugin.springプラグイン
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	// db related
+	implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.3'
+	// flyway related
+	implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.12.0'
+	runtimeOnly group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.12.0'
+	// mybatis related
+	implementation 'org.mybatis:mybatis:3.5.16'
+	implementation group: 'org.mybatis.spring.boot', name: 'mybatis-spring-boot-starter', version: '3.0.3'
+	// others
+	implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.17.0'
+	// test-related
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation group: 'com.ninja-squad', name: 'DbSetup-kotlin', version: '2.1.0'
+	testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.25.3'
+}
+
+// 実行可能JARを作成するタスク
+bootJar {
+	archiveFileName = "kotlin-learning-api.jar"
+}
+
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

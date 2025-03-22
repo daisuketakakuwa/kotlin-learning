@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="jp.ats.kotlinlearning.repository.EventRepository">
+
+    <resultMap id="organizerMap" type="jp.ats.kotlinlearning.model.Organizer" autoMapping="true" />
+    <resultMap id="participantsMap" type="jp.ats.kotlinlearning.model.Participant" autoMapping="true" />
+    <resultMap id="eventWithParticipantsResultMap" type="jp.ats.kotlinlearning.model.EventWithParticipants" autoMapping="true">
+        <!-- id以外は名前が同一であれば省略可能 -->
+        <!-- <id column="id" property="id" /> -->
+        <!-- <result column="eventName" property="eventName" /> -->
+        <!-- <result column="startsAt" property="startsAt" /> -->
+        <!-- <result column="endsAt" property="endsAt" /> -->
+        <!-- "Nestされたオブジェクト"は、automapping用の定義をこのようにする必要がある  -->
+        <result column="eventDetails" property="eventDetails" javaType="jp.ats.kotlinlearning.model.EventDetails" typeHandler="jp.ats.kotlinlearning.repository.JSONBTypeHandler" />
+        <association property="organizer" resultMap="organizerMap" columnPrefix="organizer_" />
+        <collection property="participants" columnPrefix="participant_" ofType="jp.ats.kotlinlearning.model.Participant" notNullColumn="id">
+            <id column="id" property="id" />
+            <!-- 名前が同一であれば省略可能 -->
+            <!-- <result column="firstName" property="firstName" /> -->
+            <!-- <result column="lastName" property="lastName" /> -->
+            <!-- <result column="gender" property="gender" /> -->
+        </collection>
+    </resultMap>
+
+    <select id="findEvents" resultType="jp.ats.kotlinlearning.model.Event">
+        SELECT
+            id,
+            organizer_id AS organizerId,
+            event_name AS eventName,
+            starts_at AS startsAt,
+            ends_at AS endsAt
+        FROM
+            event
+    </select>
+
+    <select id="findEventById" parameterType="int" resultType="jp.ats.kotlinlearning.model.Event">
+        SELECT
+            id,
+            organizer_id AS organizerId,
+            event_name AS eventName,
+            starts_at AS startsAt,
+            ends_at AS endsAt
+        FROM
+            event
+        WHERE
+            id = ${id}
+    </select>
+
+    <!-- Organizer + Participant 込みで取得してみる  -->
+    <select id="findEventsWithOrganizerAndParticipants" parameterType="int" resultMap="eventWithParticipantsResultMap">
+        SELECT
+            e.id AS id,
+            e.event_name AS eventName,
+            e.starts_at AS startsAt,
+            e.ends_at AS endsAt,
+            e.event_details AS eventDetails,
+            o.id AS organizer_id,
+            o.organization_name AS organizer_name,
+            p.id AS participant_id,
+            p.first_name AS participant_firstName,
+            p.last_name AS participant_lastName,
+            p.gender AS participant_gender
+        FROM
+            event e
+        LEFT JOIN
+            organizer o
+        ON
+            e.organizer_id = o.id
+        LEFT JOIN
+            rel_event_participant rep
+        ON
+            e.id = rep.event_id
+        LEFT JOIN
+            participant p
+        ON
+            rep.participant_id = p.id
+        WHERE
+            e.id = #{id}
+    </select>
+
+
+    <insert id="createEvent" parameterType="jp.ats.kotlinlearning.model.Event">
+        <!-- insert/update 時に、テーブルの先頭以外の列でキーの自動生成がされている場合に指定が必要 -->
+        <!-- useGeneratedKeys="true" -->
+        <!-- keyColumn="id" -->
+        <!-- keyProperty="id"-->
+        INSERT INTO event (
+        organizer_id,
+        event_name,
+        starts_at,
+        ends_at,
+        event_details
+        ) VALUES (
+                        <!-- xxxx.property のように書く必要はない -->
+        #{organizerId},
+        #{eventName},
+        #{startsAt},
+        #{endsAt}, #{eventDetails,typeHandler=jp.ats.kotlinlearning.repository.JSONBTypeHandler}
+        )
+    </insert>
+
+</mapper>

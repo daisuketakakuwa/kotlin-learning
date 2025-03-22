@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: postgres:13
+    container_name: kotlin-db
+    environment:
+      POSTGRES_DB: kotlinDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./docker/db/data:/var/lib/postgresql/data
+      - ./docker/db:/tmp/db
+    ports:
+      - 5435:5432
